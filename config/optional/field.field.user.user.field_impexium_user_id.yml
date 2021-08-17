@@ -1,0 +1,20 @@
+uuid: 46e36835-cd8b-4682-9062-ff6fbc6abfe0
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_impexium_user_id
+  module:
+    - user
+id: user.user.field_impexium_user_id
+field_name: field_impexium_user_id
+entity_type: user
+bundle: user
+label: 'Impexium User Id'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

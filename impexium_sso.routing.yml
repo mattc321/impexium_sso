@@ -1,0 +1,15 @@
+impexium_sso.authenticate:
+  path: '/impexium_sso'
+  defaults:
+    _controller: '\Drupal\impexium_sso\Controller\SSOController::authenticate'
+  requirements:
+    _permission: 'access content'
+impexium_sso.settings:
+  path: '/admin/config/impexium_sso/settings'
+  defaults:
+    _form: '\Drupal\impexium_sso\Form\Settings'
+    _title: 'Impexium SSO Settings'
+  requirements:
+    _permission: 'administer site configuration'
+  options:
+    _admin_route: TRUE

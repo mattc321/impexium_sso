@@ -1,0 +1,8 @@
+<?php
+
+function impexium_sso_form_user_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id)
+{
+  if (isset($form['field_impexium_user_id'])) {
+//    $form['field_impexium_user_id']['#disabled'] = true;
+  }
+}
