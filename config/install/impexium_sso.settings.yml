@@ -1,0 +1,13 @@
+impexium_sso_api_endpoint:
+impexium_sso_api_email:
+impexium_sso_api_app_name:
+impexium_sso_api_app_key:
+impexium_sso_api_app_id:
+impexium_sso_api_redirect_success:
+impexium_sso_api_redirect_fail:
+handle_exceptions_gracefully:
+exception_message_to_display:
+impexium_sso_user_field_json_map:
+impexium_sso_user_json_role_map:
+impexium_sso_api_password:
+impexium_sso_api_app_password:

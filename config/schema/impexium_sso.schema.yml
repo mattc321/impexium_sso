@@ -1,0 +1,44 @@
+impexium_sso.settings:
+  type: config_object
+  label: 'Impexium SSO Settings'
+  mapping:
+    impexium_sso_api_endpoint:
+      type: text
+      label: 'REST Endpoint'
+    impexium_sso_api_email:
+      type: text
+      label: 'API Email'
+    impexium_sso_api_password:
+      type: text
+      label: 'API Password'
+    impexium_sso_api_app_name:
+      type: text
+      label: 'App Name'
+    impexium_sso_api_app_key:
+      type: text
+      label: 'App Key'
+    impexium_sso_api_app_id:
+      type: text
+      label: 'APp Id'
+    impexium_sso_api_redirect_success:
+      type: text
+      label: 'Redirect Success URL'
+    impexium_sso_api_redirect_fail:
+      type: text
+      label: 'Redirect Fail URL'
+    handle_exceptions_gracefully:
+      type: integer
+      label: 'Hande Exceptions Gracefully'
+    exception_message_to_display:
+      type: text
+      label: 'Exception Message Override'
+    impexium_sso_user_field_json_map:
+      type: text
+      label: 'User Field Json Map'
+    impexium_sso_user_json_role_map:
+      type: text
+      label: 'User Role Json Map'
+    impexium_sso_api_app_password:
+      type: text
+      label: 'App Password'
+
