@@ -1,0 +1,34 @@
+services:
+  impexium_sso.user_fields_helper:
+    class: Drupal\impexium_sso\Helper\UserFieldsHelper
+    arguments: ['@entity_field.manager']
+  impexium_sso.user_data_helper:
+    class: Drupal\impexium_sso\Helper\UserDataHelper
+    arguments: [
+      '@config.factory',
+      '@impexium_sso.exception_handler',
+      '@logger.factory'
+    ]
+  impexium_sso.client_response_handler:
+    class: Drupal\impexium_sso\Api\Response\ResponseHandler
+  impexium_sso.api_service:
+    class: Drupal\impexium_sso\Service\ImpexiumSsoService
+    arguments: [
+      '@impexium_sso.client',
+      '@impexium_sso.exception_handler',
+      '@config.factory'
+    ]
+  impexium_sso.exception_handler:
+    class: Drupal\impexium_sso\Exception\ExceptionHandler
+    arguments: [
+      '@config.factory',
+      '@logger.factory',
+      '@messenger'
+    ]
+  impexium_sso.client:
+    class: Drupal\impexium_sso\Api\Client
+    arguments: [
+      '@config.factory',
+      '@impexium_sso.client_response_handler',
+      '@logger.factory'
+    ]
