@@ -13,3 +13,9 @@ impexium_sso.settings:
     _permission: 'administer site configuration'
   options:
     _admin_route: TRUE
+impexium_sso.settings_controller:
+  path: '/admin/config/impexium_sso/settings/map/{setting}/{container}/{table}/{dataDrupalSelector}/delete/{id}'
+  defaults:
+    _controller: '\Drupal\impexium_sso\Controller\SettingsFormController::delete'
+  requirements:
+    _permission: 'administer site configuration'
