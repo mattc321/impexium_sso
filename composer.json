@@ -1,0 +1,17 @@
+{
+    "name": "matt/impexium_sso",
+    "description": "A Drupal 8/9 Module for SSO using Impexium Api",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Matt Campbell",
+            "email": "cascadiamatt@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=7.3",
+        "drupal/core": "^8.8 || ^9"
+    }
+}
