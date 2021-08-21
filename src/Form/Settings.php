@@ -1,21 +1,13 @@
 <?php
 namespace Drupal\impexium_sso\Form;
 
-use Drupal\Core\Ajax\InvokeCommand;
 use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Link;
-use Drupal\Core\Render\Element\Textfield;
-use Drupal\Core\Render\Markup;
 use Drupal\Core\Url;
-use Drupal\impexium_sso\Exception\Types\ApiConnectionException;
-use Drupal\impexium_sso\Exception\Types\EmptyResponseException;
-use Drupal\impexium_sso\Exception\Types\MissingConfigurationException;
 use Drupal\impexium_sso\Helper\UserFieldsHelper;
 use Drupal\Core\Ajax\AjaxResponse;
-use Drupal\Core\Ajax\AlertCommand;
 use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\impexium_sso\Service\ImpexiumSsoService;
@@ -95,10 +87,7 @@ class Settings extends ConfigFormBase
     $config = $this->config('impexium_sso.settings');
 
     $form = parent::buildForm($form, $form_state);
-    $form['test_response_container']['response'] = [
-      '#type' => 'markup',
-      '#markup' => '<div class="test-response"></div>',
-    ];
+
     $form['container'] = [
       '#type' => 'details',
       '#title' => $this->t('API Configuration')
@@ -184,6 +173,16 @@ class Settings extends ConfigFormBase
 
     $form = array_merge($form, $this->getUserRoleMappingForm($form_state));
 
+    $form['test_response_container']['response'] = [
+      '#type' => 'markup',
+      '#markup' => '<div class="test-response"></div>',
+    ];
+
+    $form['dirty_form_container']['response'] = [
+      '#type' => 'markup',
+      '#markup' => '<div class="dirty-form-alert"></div>',
+    ];
+
     $form['actions']['test']['impexium_sso_api_test'] = [
       '#type' => 'button',
       '#value' => $this->t('Test API Connection'),
@@ -201,95 +200,109 @@ class Settings extends ConfigFormBase
     return $form;
   }
 
+
   /**
    * @param FormStateInterface $form_state
    * @return mixed
    */
   private function getUserFieldMappingForm(FormStateInterface $form_state)
   {
-    $config = $this->config('impexium_sso.settings');
     $header = [
-      'title' => t('Source Field Map'),
-      'content' => t('Destination Field'),
+      'source_key' => t('Source Field Key'),
+      'destination_field' => t('Destination Field'),
       'action' => '',
     ];
 
-    $description = Markup::create(
-      '<div>
-                <p>For addresses, only the first primary address or the only address, is accessible. Custom fields support customFields.name = \'condition\' to get their value.
-                Check the Impexium user response from their API for more fields to map. Custom fields must be mapped to text fields only.
-                </p>                
-              </div>'
-    );
-
-
     $form['user_map_container'] = [
       '#type' => 'details',
-      '#title' => $this->t('User Field Map'),
-      '#description' => $description,
-      '#prefix' => '<div id="js-user-map-container">',
-      '#suffix' => '</div>',
+      '#title' => $this->t('User Field Map TWO')
     ];
 
     $form['user_map_container']['user_map_table'] = [
       '#type' => 'table',
       '#header' => $header,
-      '#empty' => t('No content has been found.'),
-      '#attributes' => [
-        'id' => 'user-map-table'
-      ]
+      '#empty' => t('No content has been found.')
     ];
 
+    $config = $this->config('impexium_sso.settings');
     $userMap = json_decode($config->get('impexium_sso_user_field_json_map'), true) ?? [];
 
-    if (! $userMap) {
-      $userMap[] = 1;
+    $index = 0;
+    foreach ($userMap as $index => $row) {
+      $row = $this->getRowForUserMap($row, $index);
+      $row['action'] = $this->getActionRowElementForUserMap('Remove', $index);
+      $form['user_map_container']['user_map_table'][] = $row;
     }
 
-    foreach ($userMap as $userMapIndex => $fieldToMap) {
-      $form['user_map_container']['user_map_table']['row'.$userMapIndex]['impexium_sso_user_field_map_source_'.$userMapIndex] = [
-        '#type' => 'textfield',
-        '#default_value' => $fieldToMap['source_field'] ?? ''
-      ];
-      $form['user_map_container']['user_map_table']['row'.$userMapIndex]['impexium_sso_user_field_map_destination_'.$userMapIndex] = [
-        '#type' => 'select',
-        '#options' => $this->userFieldsHelper->getUserAccountFields(true),
-        '#default_value' => $fieldToMap['destination_field'] ?? ''
-      ];
+    $addRow = $this->getRowForUserMap('', $index + 1);
+    $addRow['action'] = $this->getActionRowElementForUserMap('Add', $index + 1);
 
-      $delete = Url::fromUserInput("/admin/config/impexium_sso/settings/map/impexium_sso_user_field_json_map/user_map_container/user_map_table/edit-user-map-table/delete/{$userMapIndex}");
-      $deleteLink = Link::fromTextAndUrl(t('Delete'), $delete);
-      $deleteLink  = $deleteLink->toRenderable();
-      $deleteLink['#attributes'] = ['class'=>'use-ajax'];
+    $form['user_map_container']['user_map_table'][] = $addRow;
 
-      $form['user_map_container']['user_map_table']['row'.$userMapIndex]['add_row_'.$userMapIndex]['actions']['submit_'.$userMapIndex] = [
-        $deleteLink
-      ];
+    return $form;
 
-    }
+  }
 
-    //persist the last blank row
-    if ($userMapIndex > 0) {
-      $userMapIndex++;
-      $form['user_map_container']['user_map_table']['row'.$userMapIndex]['impexium_sso_user_field_map_source_'.$userMapIndex] = [
-        '#type' => 'textfield',
-        '#default_value' => ''
-      ];
-      $form['user_map_container']['user_map_table']['row'.$userMapIndex]['impexium_sso_user_field_map_destination_'.$userMapIndex] = [
-        '#type' => 'select',
-        '#options' => $this->userFieldsHelper->getUserAccountFields(true),
-        '#default_value' => ''
-      ];
-      $form['user_map_container']['user_map_table']['row'.$userMapIndex]['add_row_'.$userMapIndex]['actions']['submit_'.$userMapIndex] = [
+  /**
+   * @param $row
+   * @param $index
+   * @return array
+   */
+  protected function getRowForUserMap($row, $index)
+  {
+
+    return [
+      'source_key' => $this->getSourceRowElementForUserMap($row['source_field'] ?? '', $index),
+      'destination_field' => $this->getDestinationRowElementForUserMap($row['destination_field'] ?? '', $index)
+    ];
+
+  }
+
+  /**
+   * @param $sourceField
+   * @param int $index
+   * @return array
+   */
+  protected function getSourceRowElementForUserMap($sourceField, int $index)
+  {
+    return [
+      '#type' => 'textfield',
+      '#default_value' => $sourceField
+    ];
+  }
+
+  /**
+   * @param $destinationField
+   * @param int $index
+   * @return array
+   */
+  protected function getDestinationRowElementForUserMap($destinationField, int $index)
+  {
+    return [
+      '#type' => 'select',
+      '#options' => $this->userFieldsHelper->getUserAccountFields(true),
+      '#default_value' => $destinationField
+    ];
+  }
+
+  /**
+   * @param $actionFieldValue
+   * @param int $index
+   * @return array|Link|mixed[]
+   */
+  protected function getActionRowElementForUserMap($actionFieldValue, int $index)
+  {
+    if ($actionFieldValue === 'Add') {
+      return [
         '#type' => 'submit',
-        '#value' => $this->t('Add'),
-        '#name' => 'map_add_row_'.$userMapIndex,
+        '#value' => $this->t($actionFieldValue),
+        '#name' => 'user_field_add_row_'.$index,
         '#submit' => ['::addRow'],
         '#attributes' => [
-          'data-id' => $userMapIndex,
+          'data-id' => $index,
           'data-map-setting' => 'impexium_sso_user_field_json_map',
           'data-table-selector' => 'user_map_table',
-          'data-table-row-selector' => 'edit-user-map-table-row'.$userMapIndex
+          'data-table-row-selector' => 'edit-user-map-table-row'.$index
         ],
         '#ajax' => [
           'callback' => '::ajaxUserMapTableAddCallback',
@@ -298,9 +311,20 @@ class Settings extends ConfigFormBase
       ];
     }
 
-    return $form;
+    //for some reason hit major snags trying to delete this row and offer a rerender in the ajax callback from the form.
+    //moved this stuff out to a controller and it works fine.
+    $delete = Url::fromUserInput("/admin/config/impexium_sso/settings/map/impexium_sso_user_field_json_map/user_map_container/user_map_table/edit-user-map-container/delete/{$index}");
+    $deleteLink = Link::fromTextAndUrl(t('Delete'), $delete);
+    $deleteLink  = $deleteLink->toRenderable();
+    $deleteLink['#attributes'] = ['class'=>'use-ajax'];
+
+    return $deleteLink;
   }
 
+  /**
+   * @param FormStateInterface $form_state
+   * @return mixed
+   */
   protected function getUserRoleMappingForm(FormStateInterface $form_state)
   {
 
@@ -313,8 +337,6 @@ class Settings extends ConfigFormBase
     $form['user_role_container'] = [
       '#type' => 'details',
       '#title' => $this->t('User Role Map'),
-      '#prefix' => '<div id="js-user-role-container">',
-      '#suffix' => '</div>',
     ];
 
     $form['user_role_container']['user_role_table'] = [
@@ -330,31 +352,40 @@ class Settings extends ConfigFormBase
     $userMap = json_decode($config->get('impexium_sso_user_json_role_map'), true) ?? [];
 
     $index = 0;
-    foreach ($userMap as $index => $row) {
-      $row = $this->getRow($row, $index);
+    foreach (array_values($userMap) as $index => $row) {
+      $row = $this->getRow($row);
       $row['action'] = $this->getActionRowElement('Remove', $index);
       $form['user_role_container']['user_role_table'][] = $row;
     }
 
-    $addRow = $this->getRow('', $index + 1);
-    $addRow['action'] = $this->getActionRowElement('Add', $index + 1);
+    $index = $index + 1;
+    $addRow = $this->getRow('');
+    $addRow['action'] = $this->getActionRowElement('Add', $index);
 
     $form['user_role_container']['user_role_table'][] = $addRow;
 
     return $form;
   }
 
-  protected function getRow($row, $index)
+  /**
+   * @param $row
+   * @return array
+   */
+  protected function getRow($row)
   {
 
       return [
-        'source_role' => $this->getSourceRowElement($row['source_field'] ?? '', $index),
-        'destination_role' => $this->getDestinationRowElement($row['destination_field'] ?? '', $index)
+        'source_role' => $this->getSourceRowElement($row['source_field'] ?? ''),
+        'destination_role' => $this->getDestinationRowElement($row['destination_field'] ?? '')
       ];
 
   }
 
-  protected function getSourceRowElement($sourceField, int $index)
+  /**
+   * @param $sourceField
+   * @return array
+   */
+  protected function getSourceRowElement($sourceField)
   {
     return [
       '#type' => 'textfield',
@@ -362,7 +393,11 @@ class Settings extends ConfigFormBase
     ];
   }
 
-  protected function getDestinationRowElement($destinationField, int $index)
+  /**
+   * @param $destinationField
+   * @return array
+   */
+  protected function getDestinationRowElement($destinationField)
   {
     return [
       '#type' => 'select',
@@ -371,13 +406,17 @@ class Settings extends ConfigFormBase
     ];
   }
 
+  /**
+   * @param $actionFieldValue
+   * @param int $index
+   * @return array|Link|mixed[]
+   */
   protected function getActionRowElement($actionFieldValue, int $index)
   {
     if ($actionFieldValue === 'Add') {
       return [
             '#type' => 'submit',
             '#value' => $this->t($actionFieldValue),
-            '#name' => 'role_add_row_'.$index,
             '#submit' => ['::addRow'],
             '#attributes' => [
               'data-id' => $index,
@@ -387,14 +426,14 @@ class Settings extends ConfigFormBase
             ],
             '#ajax' => [
               'callback' => '::ajaxUserRoleTableAddCallback',
-              'wrapper' => 'user-role-table'
+              'wrapper' => 'edit-user-role-container'
             ]
         ];
     }
 
     //for some reason hit major snags trying to delete this row and offer a rerender in the ajax callback from the form.
     //moved this stuff out to a controller and it works fine.
-    $delete = Url::fromUserInput("/admin/config/impexium_sso/settings/map/impexium_sso_user_json_role_map/user_role_container/user_role_table/edit-user-role-table/delete/{$index}");
+    $delete = Url::fromUserInput("/admin/config/impexium_sso/settings/map/impexium_sso_user_json_role_map/user_role_container/user_role_table/edit-user-role-container/delete/{$index}");
     $deleteLink = Link::fromTextAndUrl(t('Delete'), $delete);
     $deleteLink  = $deleteLink->toRenderable();
     $deleteLink['#attributes'] = ['class'=>'use-ajax'];
@@ -417,14 +456,33 @@ class Settings extends ConfigFormBase
       return;
     }
 
+    if (! isset($form_state->getTriggeringElement()['#attributes']['data-id'])) {
+      return;
+    }
+
     $setting = $form_state->getTriggeringElement()['#attributes']['data-map-setting'];
     $tableSelector = $form_state->getTriggeringElement()['#attributes']['data-table-selector'];
+    $dataId = $form_state->getTriggeringElement()['#attributes']['data-id'];
 
-    $this->saveUserMapConfigValues(
-      $form_state,
-      $setting,
-      $tableSelector
-    );
+    if (! $form_state->getValue($tableSelector)) {
+      return;
+    }
+
+    $currentRowValue = $form_state->getValue($tableSelector)[$dataId];
+
+    $config = $this->config('impexium_sso.settings');
+
+    $arrayMap = array_values(json_decode($config->get($setting), true));
+
+    $arrayMap[] = [
+      'source_field_setting' => 'source_role',
+      'source_field' => $currentRowValue['source_role'],
+      'destination_field' => $currentRowValue['destination_role'],
+      'destination_field_setting' => 'destination_role',
+    ];
+
+    $config->set($setting, json_encode($arrayMap));
+    $config->save();
 
     $form_state->setRebuild();
   }
@@ -437,6 +495,10 @@ class Settings extends ConfigFormBase
   public function ajaxUserMapTableAddCallback(array &$form, FormStateInterface $form_state)
   {
     $response = new AjaxResponse();
+
+    $response->addCommand(new HtmlCommand('.dirty-form-alert', ''));
+    $response->addCommand(new HtmlCommand('.dirty-form-alert', $this->getDirtyFormAlertContent()));
+
     $form['user_map_container']['#open'] = true;
     $response->addCommand(new ReplaceCommand('[data-drupal-selector="edit-user-map-container"]', $form['user_map_container']));
     return $response;
@@ -450,6 +512,10 @@ class Settings extends ConfigFormBase
   public function ajaxUserRoleTableAddCallback(array &$form, FormStateInterface $form_state)
   {
     $response = new AjaxResponse();
+
+    $response->addCommand(new HtmlCommand('.dirty-form-alert', ''));
+    $response->addCommand(new HtmlCommand('.dirty-form-alert', $this->getDirtyFormAlertContent()));
+
     $form['user_role_container']['#open'] = true;
     $response->addCommand(new ReplaceCommand('[data-drupal-selector="edit-user-role-container"]', $form['user_role_container']));
 
@@ -464,6 +530,13 @@ class Settings extends ConfigFormBase
   public function testApiConnection(array &$form, FormStateInterface $form_state)
   {
     $response = new AjaxResponse();
+
+    $response->addCommand(new HtmlCommand(
+        '.test-response',
+        ''
+      )
+    );
+
     $response->addCommand(new HtmlCommand(
         '.test-response',
         $this->getTestApiResponseOutput()
@@ -604,6 +677,16 @@ class Settings extends ConfigFormBase
     }
     $config->set($setting, $userRoleMapValues);
     $config->save();
+  }
+
+  /**
+   * @return string
+   */
+  private function getDirtyFormAlertContent()
+  {
+    return "<div class=\"messages messages--warning\"><div>
+              You have unsaved changes on your configuration form
+        </div></div>";
   }
 
 }

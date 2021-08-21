@@ -5,6 +5,7 @@ namespace Drupal\impexium_sso\Controller;
 
 
 use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\PrependCommand;
 use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -58,16 +59,18 @@ class SettingsFormController extends ControllerBase
   {
 
     $config = $this->configFactory->getEditable('impexium_sso.settings');
-    $arrayMap = json_decode($config->get($setting), true);
+    $arrayMap = array_values(json_decode($config->get($setting), true));
     $response = new AjaxResponse();
 
     if (! $arrayMap || ! isset($arrayMap[$id])) {
       $form = $this->formBuilder->getForm('Drupal\impexium_sso\Form\Settings');
-      $response->addCommand(new ReplaceCommand('[data-drupal-selector="'.$dataDrupalSelector.'"]', $form[$container][$table]));
+      $response->addCommand(new ReplaceCommand('[data-drupal-selector="'.$dataDrupalSelector.'"]', $form[$container]));
       return $response;
     }
 
     unset($arrayMap[$id]);
+
+    $arrayMap = array_values($arrayMap);
 
     $config->set($setting, json_encode($arrayMap));
     $config->save();
@@ -84,8 +87,22 @@ class SettingsFormController extends ControllerBase
       return $response;
     }
 
-    $response->addCommand(new ReplaceCommand('[data-drupal-selector="'.$dataDrupalSelector.'"]', $form[$container][$table]));
+    $response->addCommand(new HtmlCommand('.dirty-form-alert', ''));
+    $response->addCommand(new HtmlCommand('.dirty-form-alert', $this->getDirtyFormAlertContent()));
+
+    $form[$container]['#open'] = true;
+    $response->addCommand(new ReplaceCommand('[data-drupal-selector="'.$dataDrupalSelector.'"]', $form[$container]));
 
     return $response;
+  }
+
+  /**
+   * @return string
+   */
+  private function getDirtyFormAlertContent()
+  {
+    return "<div class=\"messages messages--warning\"><div>
+              You have unsaved changes on your configuration form
+        </div></div>";
   }
 }
