@@ -137,6 +137,17 @@ class Settings extends ConfigFormBase
           : '',
       ]
     ];
+    $form['container']['impexium_sso_api_logout_page'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Impexium Logout URL'),
+      '#description' => $this->t('The URL of your Impexium logout page to logout of Impexium if user logs out of Drupal'),
+      '#attributes' => [
+        'placeholder' => $config->get('impexium_sso_api_logout_page')
+          ? ''
+          : $this->t('https://yourimpexiumurl.com/impexium/account/logout.aspx'),
+      ],
+      '#default_value' => $config->get('impexium_sso_api_logout_page')
+    ];
 
     $form['settings_container'] = [
       '#type' => 'details',
@@ -167,6 +178,12 @@ class Settings extends ConfigFormBase
       '#type' => 'textfield',
       '#title' => $this->t('Redirect URL on Authentication Failure'),
       '#default_value' => $config->get('impexium_sso_api_redirect_fail')
+    ];
+
+    $form['settings_container']['impexium_sso_api_redirect_after_logout'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Redirect URL After Logout Success'),
+      '#default_value' => $config->get('impexium_sso_api_redirect_after_logout')
     ];
 
     $form = array_merge($form, $this->getUserFieldMappingForm($form_state));
@@ -628,8 +645,11 @@ class Settings extends ConfigFormBase
     $config->set('impexium_sso_api_app_name', $form_state->getValue('impexium_sso_api_app_name'));
     $config->set('impexium_sso_api_app_key', $form_state->getValue('impexium_sso_api_app_key'));
     $config->set('impexium_sso_api_app_id', $form_state->getValue('impexium_sso_api_app_id'));
+    $config->set('impexium_sso_api_logout_page', $form_state->getValue('impexium_sso_api_logout_page'));
+
     $config->set('impexium_sso_api_redirect_success', $form_state->getValue('impexium_sso_api_redirect_success'));
     $config->set('impexium_sso_api_redirect_fail', $form_state->getValue('impexium_sso_api_redirect_fail'));
+    $config->set('impexium_sso_api_redirect_after_logout', $form_state->getValue('impexium_sso_api_redirect_after_logout'));
 
     $config->set('handle_exceptions_gracefully', $form_state->getValue('handle_exceptions_gracefully'));
     $config->set('exception_message_to_display', $form_state->getValue('exception_message_to_display'));
