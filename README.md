@@ -12,7 +12,7 @@ A Drupal Module offering a Single Sign On solution integration using Impexium
 https://www.impexium.com/
 
 # Install
-- Install with composer by adding to repository to composer.json. Example:
+- Install with composer by adding the repository to composer.json. Example:
 
          "repositories": {
                  "0": {
@@ -33,7 +33,7 @@ https://www.impexium.com/
 
          drush pm-enable impexium_sso
          
-- Configure the API credentials and setting on the configuration page
+- Configure the API credentials and settings on the configuration page
 
 # Developers
 
