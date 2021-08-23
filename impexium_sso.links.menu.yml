@@ -1,0 +1,6 @@
+impexium_sso.settings:
+  title: 'Impexium SSO Configuration'
+  description: 'Configure the Impexium SSO settings.'
+  parent: system.admin_config_system
+  route_name: impexium_sso.settings
+  weight: 20
