@@ -2,6 +2,7 @@
 namespace Drupal\impexium_sso\Controller;
 
 use Drupal\Core\Routing\LocalRedirectResponse;
+use Drupal\Core\Session\SessionManager;
 use Drupal\Core\Url;
 use Drupal\impexium_sso\Api\Model\Response\ImpexiumUser;
 use Drupal\impexium_sso\Exception\ExceptionHandler;
@@ -19,6 +20,9 @@ class SSOController extends ControllerBase
 {
   const USER_ID_PARAM = 'UserId';
   const SSO_PARAM = 'sso';
+  const SSO_LOGOUT_ACTION_PARAM = 'Action';
+  const SSO_LOGOUT_ACTION_VALUE = 'Logout';
+
 
   /**
    * @var AccountProxyInterface
@@ -40,6 +44,10 @@ class SSOController extends ControllerBase
    * @var ExceptionHandler
    */
   private $exceptionHandler;
+  /**
+   * @var SessionManager
+   */
+  private $sessionManager;
 
 
   /**
@@ -49,19 +57,22 @@ class SSOController extends ControllerBase
    * @param ImpexiumSsoService $impexiumSsoService
    * @param UserDataHelper $userDataHelper
    * @param ExceptionHandler $exceptionHandler
+   * @param SessionManager $sessionManager
    */
   public function __construct(
     AccountProxyInterface $accountProxy,
     RequestStack $request,
     ImpexiumSsoService $impexiumSsoService,
     UserDataHelper $userDataHelper,
-    ExceptionHandler $exceptionHandler
+    ExceptionHandler $exceptionHandler,
+    SessionManager $sessionManager
   ) {
     $this->accountProxy = $accountProxy;
     $this->request = $request;
     $this->impexiumSsoService = $impexiumSsoService;
     $this->userDataHelper = $userDataHelper;
     $this->exceptionHandler = $exceptionHandler;
+    $this->sessionManager = $sessionManager;
   }
 
   /**
@@ -75,7 +86,8 @@ class SSOController extends ControllerBase
       $container->get('request_stack'),
       $container->get('impexium_sso.api_service'),
       $container->get('impexium_sso.user_data_helper'),
-      $container->get('impexium_sso.exception_handler')
+      $container->get('impexium_sso.exception_handler'),
+      $container->get('session_manager')
     );
   }
 
@@ -86,6 +98,12 @@ class SSOController extends ControllerBase
   {
     //already authenticated
     if ($this->accountProxy->isAuthenticated()) {
+
+      if ($this->isLoggingOutOfSSO()) {
+        $this->doLogout();
+        return $this->afterLogoutRedirect();
+      }
+
       return $this->successRedirect();
     }
 
@@ -147,9 +165,18 @@ class SSOController extends ControllerBase
     //do not cache redirect responses.
     $successRedirect = $this->impexiumSsoService->getConfig()->get('impexium_sso_api_redirect_success')
       ?? '<front>';
-    $response = new LocalRedirectResponse(Url::fromRoute($successRedirect)->toString());
-    $response->getCacheableMetadata()->setCacheMaxAge(0);
-    return $response;
+    return $this->getNoCacheRedirect($successRedirect);
+  }
+
+  /**
+   * @return LocalRedirectResponse
+   */
+  private function afterLogoutRedirect()
+  {
+    //do not cache redirect responses.
+    $afterLogoutRedirect = $this->impexiumSsoService->getConfig()->get('impexium_sso_api_redirect_after_logout')
+      ?? '<front>';
+    return $this->getNoCacheRedirect($afterLogoutRedirect);
   }
 
   /**
@@ -166,6 +193,17 @@ class SSOController extends ControllerBase
   }
 
   /**
+   * @param string $redirect
+   * @return LocalRedirectResponse
+   */
+  private function getNoCacheRedirect(string $redirect)
+  {
+    $response = new LocalRedirectResponse(Url::fromRoute($redirect)->toString());
+    $response->getCacheableMetadata()->setCacheMaxAge(0);
+    return $response;
+  }
+
+  /**
    * @param ImpexiumUser $impexiumUser
    * @param $userId
    * @return bool
@@ -173,5 +211,30 @@ class SSOController extends ControllerBase
   private function doesImpexiumUserIdMatchDrupalUserId(ImpexiumUser $impexiumUser, $userId)
   {
     return $impexiumUser->getId() === $userId;
+  }
+
+  /**
+   * Check if Impexium is trying to logout the user
+   * @return bool
+   */
+  private function isLoggingOutOfSSO()
+  {
+    $action = $this->request->getCurrentRequest()->query->get(self::SSO_LOGOUT_ACTION_PARAM);
+
+    if (! $action) {
+      return false;
+    }
+
+    return $action === self::SSO_LOGOUT_ACTION_VALUE;
+
+  }
+
+  /**
+   * Logout a user
+   * @return void
+   */
+  private function doLogout()
+  {
+    user_logout();
   }
 }
