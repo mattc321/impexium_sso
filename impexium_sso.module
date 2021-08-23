@@ -1,8 +1,76 @@
 <?php
 
-function impexium_sso_form_user_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id)
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\redirect\Entity\Redirect;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+
+/**
+ * Implements hook_help().
+ */
+function impexium_sso_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.impexium_sso':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('This module will create/update and authenticate a user based on SSO token verification against an Impexium system. Please review Impexium SSO Integration documentation for more information.') . '</p>';
+      $output .= '<p>' . t('This module handles logins and logouts from Impexium. It does not handle logins directly from Drupal. However one could easily inject the Client service provided to make the necessary calls to do so.') . '</p>';
+      $output .= '<h3>' . t('Setup') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Setup Impexium') . '</dt>';
+      $output .= '<dd>' . t('In your Impexium Application SSO Configuration: Point your SSO redirect url for login and for logout to https://yoursite.com/impexium_sso') . '</dd>';
+      $output .= '<dt>' . t('Setup API Credentials') . '</dt>';
+      $output .= '<dd>' . t('Fill out all of your API credentials. Include one user login account to retrieve Impexium app authentication.') . '</dd>';
+      $output .= '<dd>' . t('Save the configuration form, and then click Test API Connection') . '</dd>';
+      $output .= '<dt>' . t('Configure General Settings') . '</dt>';
+      $output .= '<dd>' . t('Graceful errors: This will catch all exceptions and print them to the messenger.') . '</dd>';
+      $output .= '<dd>' . t('Override message: Along with graceful errors, this will catch all errors and override them with a message meant for an end user. The correct error will still be logged.') . '</dd>';
+      $output .= '<dd>' . t('Define the URL or route name to redirect to after a successful and unsuccessful authentication attempt.') . '</dd>';
+      $output .= '<dt>' . t('User Field Map') . '</dt>';
+      $output .= '<dd>' . t('A User ID field is created and mapped by default. This will store the Impexium User Id.') . '</dd>';
+      $output .= '<dd>' . t('If you want to map additional fields from Impexium to Drupal, create the fields on the user account entity.') . '</dd>';
+      $output .= '<dd>' . t('Then map the source field from the Impexium user object to destination user account field.') . '</dd>';
+      $output .= '<dd>' . t('This is largely an unintelligent mapping and should be used primarily for text or boolean fields.') . '</dd>';
+      $output .= '<dd>' . t('Review the the Impexium user JSON object for source field mapping information.') . '</dd>';
+      $output .= '<dd>' . t('Nested array values can be accessed by parent.child.key') . '</dd>';
+      $output .= '<dd>' . t('Custom Fields support an = operator. Example: customFields.name = am_registration will map the value of the custom field whos name equals am_registration') . '</dd>';
+      $output .= '<dt>' . t('User Role Map') . '</dt>';
+      $output .= '<dd>' . t('Map the source Security Role field to a destination Drupal role.') . '</dd>';
+      $output .= '<dd>' . t('By default, authenticated users will receive the authenticated role once they have been authenticated successfully.') . '</dd>';
+      $output .= '</dl>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ * @param $form
+ * @param FormStateInterface $form_state
+ * @param $form_id
+ */
+function impexium_sso_form_user_form_alter(&$form, FormStateInterface $form_state, $form_id)
 {
   if (isset($form['field_impexium_user_id'])) {
-//    $form['field_impexium_user_id']['#disabled'] = true;
+    $form['field_impexium_user_id']['#disabled'] = true;
   }
+}
+
+/**
+ * Implements hook_logout().
+ * @param AccountInterface $account
+ */
+function impexium_sso_user_logout(AccountInterface $account)
+{
+  $settings = \Drupal::config('impexium_sso.settings');
+
+  $logoutUrl = $settings->get('impexium_sso_api_logout_page');
+
+  if (! $logoutUrl) {
+    return;
+  }
+
+  $response = new RedirectResponse($logoutUrl);
+  $response->send();
+
 }
