@@ -107,10 +107,10 @@ class SSOController extends ControllerBase
       return $this->successRedirect();
     }
 
-    //missing url parameters
     $userId = $this->request->getCurrentRequest()->query->get(self::USER_ID_PARAM);
     $ssoId = $this->request->getCurrentRequest()->query->get(self::SSO_PARAM);
 
+    //missing url parameters
     if (! $userId || ! $ssoId) {
       $this->exceptionHandler->handleException(new InvalidParameterException('Missing required parameters.'));
       return $this->failRedirect();
