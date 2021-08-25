@@ -150,8 +150,13 @@ class Client
 
     $authData = $this->getAuthData();
 
-    // TODO where is this should it be config?
-    $uri = 'https://aes.mpxstage.com/Api/v1/Individuals/FindbySSOToken/' . $ssoId;
+    $uri = $this->config->get('impexium_sso_api_get_user_endpoint');
+
+    if (! $uri) {
+      throw new ApiConnectionException('Could not get impexium user. Missing URL in config.');
+    }
+
+    $uri = $uri . $ssoId;
 
     $client = new \GuzzleHttp\Client();
 

@@ -137,6 +137,12 @@ class Settings extends ConfigFormBase
           : '',
       ]
     ];
+    $form['container']['impexium_sso_api_get_user_endpoint'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Impexium SSO Get User Endpoint'),
+      '#description' => $this->t('usually'). ' https://yourmpxstage.com/Api/v1/Individuals/FindbySSOToken/',
+      '#default_value' => $config->get('impexium_sso_api_get_user_endpoint')
+    ];
     $form['container']['impexium_sso_api_logout_page'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Impexium Logout URL'),
@@ -645,6 +651,7 @@ class Settings extends ConfigFormBase
     $config->set('impexium_sso_api_app_name', $form_state->getValue('impexium_sso_api_app_name'));
     $config->set('impexium_sso_api_app_key', $form_state->getValue('impexium_sso_api_app_key'));
     $config->set('impexium_sso_api_app_id', $form_state->getValue('impexium_sso_api_app_id'));
+    $config->set('impexium_sso_api_get_user_endpoint', $form_state->getValue('impexium_sso_api_get_user_endpoint'));
     $config->set('impexium_sso_api_logout_page', $form_state->getValue('impexium_sso_api_logout_page'));
 
     $config->set('impexium_sso_api_redirect_success', $form_state->getValue('impexium_sso_api_redirect_success'));
