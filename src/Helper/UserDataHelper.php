@@ -123,7 +123,7 @@ class UserDataHelper
 
     $impexiumUserData = $impexiumUser->getUser();
 
-    if (! isset($impexiumUser['loginEmal'])) {
+    if (! isset($impexiumUserData['loginEmail'])) {
       throw new UserDataException("Could not update user. Missing required field loginEmail from impexium user.");
     }
 
