@@ -9,6 +9,7 @@ use Drupal\impexium_sso\Api\Client;
 use Drupal\impexium_sso\Api\Model\Response\ImpexiumUser;
 use Drupal\impexium_sso\Api\Model\Response\ResponseModelInterface;
 use Drupal\impexium_sso\Exception\ExceptionHandler;
+use Drupal\impexium_sso\Exception\Types\UserDataException;
 use Drupal\user\UserInterface;
 use Throwable;
 
@@ -66,15 +67,27 @@ class ImpexiumSsoService
    * @return UserInterface|null
    * @throws InvalidPluginDefinitionException
    * @throws PluginNotFoundException
+   * @throws UserDataException
    */
   public function getMatchingDrupalUserFromImpexiumUser(string $userId, ImpexiumUser $impexiumUser)
   {
 
+    $impexiumUserData = $impexiumUser->getUser();
+    if (! isset($impexiumUserData['loginEmail'])) {
+      throw new UserDataException('Impexium User record is missing required loginEmail field.');
+    }
+
     $userStorage = \Drupal::entityTypeManager()->getStorage('user');
 
     $query = $userStorage->getQuery();
+    $or = $query->orConditionGroup();
+    $or->condition('field_impexium_user_id', $userId);
+    $or->condition('name', $impexiumUserData['loginEmail']);
+    $or->condition('mail', $impexiumUserData['loginEmail']);
+
     $uids = $query
-      ->condition('field_impexium_user_id', $userId)
+      ->condition($or)
+      ->accessCheck(false)
       ->execute();
 
     $users = $userStorage->loadMultiple($uids);
@@ -84,6 +97,7 @@ class ImpexiumSsoService
     }
 
     return $users[array_key_first($users)];
+
   }
 
   /**

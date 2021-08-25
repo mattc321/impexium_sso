@@ -121,13 +121,23 @@ class UserDataHelper
       throw new UserDataException("Could not update user. Missing impexium user id field in source or destination.");
     }
 
+    $impexiumUserData = $impexiumUser->getUser();
+
+    if (! isset($impexiumUser['loginEmal'])) {
+      throw new UserDataException("Could not update user. Missing required field loginEmail from impexium user.");
+    }
+
+    //update primary user fields. We set the username and email since impexium users may change these
+    //in impexium sometimes.
     $drupalUser->set('field_impexium_user_id', $impexiumUser->getId());
+    $drupalUser->setUsername( $impexiumUserData['loginEmail']);
+    $drupalUser->setEmail($impexiumUserData['loginEmail']);
 
     //sync additional user fields
     $userFieldsToMap = json_decode($this->config->get('impexium_sso_user_field_json_map'), true);
 
     if (! $userFieldsToMap) {
-      $this->logger->notice("No additional user fields to map. Syncing ID field only.");
+      $this->logger->notice("No additional user fields to map. Syncing ID, username and email fields only.");
       $drupalUser->save();
       return $drupalUser;
     }
