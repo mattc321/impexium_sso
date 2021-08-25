@@ -11,7 +11,7 @@ A Drupal Module offering a Single Sign On solution integration using Impexium
 
 https://www.impexium.com/
 
-# Install
+# Install with Composer
 - Install with composer by adding the repository to composer.json. Example:
 
          "repositories": {
@@ -34,6 +34,12 @@ https://www.impexium.com/
          drush pm-enable impexium_sso
          
 - Configure the API credentials and settings on the configuration page
+
+# Install with Files
+You can download the source code from the releases page, unzip into the modules directory
+of your Drupal site. Then you can install from the Drupal UI.
+
+https://github.com/mattc321/impexium_sso/releases/
 
 # Usage
 
