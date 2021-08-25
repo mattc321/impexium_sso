@@ -21,7 +21,7 @@ use Drupal\user\UserInterface;
  */
 function hook_impexium_sso_should_authenticate_user(UserInterface $drupalUser, ImpexiumUser $impexiumUser, AllowLoginResponse $allowLoginResponse)
 {
-  if ($drupalUser->status->value == false || $drupalUser->status->value === 0) {
+  if ($drupalUser->status->value == false || $drupalUser->status->value === 0 || $drupalUser->status->value === "0") {
     \Drupal::service('impexium_sso.exception_handler')->handleException(new UserDataException('This user is currently disabled. Cannot login.'));
     $allowLoginResponse->setAllowLogin(false);
   }

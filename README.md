@@ -3,8 +3,8 @@ A Drupal Module offering a Single Sign On solution integration using Impexium
 - After login into Impexium systems
 - Redirect to drupal site sso endpoint with user id and sso params
 - Verify SSO token against api
-- Query existing users by supplied user id
-- If user exists, update its fields with impexium user data
+- Query existing users by supplied user id or loginEmail
+- If user exists, update the desired fields with impexium user data
   - authenticate to Drupal
 - If user does not exist, create a new user with impexium user data
   - authenticate to drupal.
