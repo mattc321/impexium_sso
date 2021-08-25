@@ -114,10 +114,22 @@ class UserDataHelper
    */
   private function syncUsers(ImpexiumUser $impexiumUser, User $drupalUser)
   {
+
+    //sync the user id field
+    if (! $drupalUser->hasField('field_impexium_user_id')
+      || ! $impexiumUser->getId()) {
+      throw new UserDataException("Could not update user. Missing impexium user id field in source or destination.");
+    }
+
+    $drupalUser->set('field_impexium_user_id', $impexiumUser->getId());
+
+    //sync additional user fields
     $userFieldsToMap = json_decode($this->config->get('impexium_sso_user_field_json_map'), true);
 
     if (! $userFieldsToMap) {
-      throw new UserDataException("Could not update user. No user fields to map.");
+      $this->logger->notice("No additional user fields to map. Syncing ID field only.");
+      $drupalUser->save();
+      return $drupalUser;
     }
 
     //loop through the user field map and set the values
@@ -142,6 +154,8 @@ class UserDataHelper
 
     $drupalUser = $this->mapUserRoles($impexiumUser, $drupalUser);
 
+    //allow these to bubble up
+    //$validate = $drupalUser->validate();
     $drupalUser->save();
 
     return $drupalUser;
@@ -226,22 +240,9 @@ class UserDataHelper
    * @param ImpexiumUser $impexiumUser
    * @param User $drupalUser
    * @return User
-   * @throws UserDataException
    */
   private function mapUserRoles(ImpexiumUser $impexiumUser, User $drupalUser)
   {
-    $securityRoles = $impexiumUser->getSecurityRoles();
-
-    if (! $securityRoles) {
-      throw new UserDataException("Could not update user. Missing security roles on impexium user {$impexiumUser->getOldId()}");
-    }
-
-    $userRolesToMap = json_decode($this->config->get('impexium_sso_user_json_role_map'), true);
-
-    if (! $userRolesToMap) {
-      throw new UserDataException("Could not update user. No user roles to map.");
-    }
-
     $currentRoles = $drupalUser->getRoles(true);
 
     //first remove all the existing unlocked roles
@@ -249,6 +250,20 @@ class UserDataHelper
       $drupalUser->removeRole($currentRole);
     }
 
+    $securityRoles = $impexiumUser->getSecurityRoles();
+
+    if (! $securityRoles) {
+      $this->logger->notice("No security roles exist on the impexium user. User is getting authenticated by default.");
+      return $drupalUser;
+    }
+
+    $userRolesToMap = json_decode($this->config->get('impexium_sso_user_json_role_map'), true);
+
+    //if no roles have been mapped in config we give authenticated
+    if (! $userRolesToMap) {
+      $this->logger->notice("No user roles are mapped. User is getting authenticated by default.");
+      return $drupalUser;
+    }
 
     //now map the new ones
     foreach ($securityRoles as $securityRole) {
@@ -258,11 +273,19 @@ class UserDataHelper
         continue;
       }
 
-      if ($roleId = $this->getDestinationRole($userRolesToMap, $securityRole['name'])) {
-        $drupalUser->addRole($roleId);
-      } else {
-        $this->logger->notice("Skipping security role {$securityRole} no destination role was found.");
+      $roleId = $this->getDestinationRole($userRolesToMap, $securityRole['name']);
+
+      if (! $roleId) {
+        $this->logger->notice("Skipping security role {$securityRole['name']} no destination role was found.");
+        continue;
       }
+
+      if ($roleId === 'authenticated' || $roleId === 'anonymous') {
+        $this->logger->notice("Skipping security role {$securityRole['name']} we do not assign anonymous or authenticated manually. This is automatic.");
+        continue;
+      }
+
+      $drupalUser->addRole($roleId);
     }
 
     return $drupalUser;
