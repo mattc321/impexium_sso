@@ -31,8 +31,10 @@ class UserFieldsHelper
     'init',
     'roles',
     'default_langcode',
-    'user_picture'
+    'user_picture',
+    'field_impexium_user_id'
   ];
+
   /**
    * @var EntityFieldManager
    */
