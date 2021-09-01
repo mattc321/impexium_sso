@@ -1,8 +1,12 @@
 <?php
 namespace Drupal\impexium_sso\Controller;
 
+use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\impexium_sso\Api\Model\Response\ImpexiumUser;
 use Drupal\impexium_sso\Exception\ExceptionHandler;
+use Drupal\impexium_sso\Exception\Types\UserDataException;
 use Drupal\impexium_sso\Helper\UserDataHelper;
 use Drupal\impexium_sso\Model\AllowLoginResponse;
 use Drupal\impexium_sso\Service\ImpexiumSsoService;
@@ -85,6 +89,23 @@ class SSOController extends ControllerBase
    * @throws Throwable
    */
   public function authenticate()
+  {
+    try {
+      return $this->tryAuthenticate();
+    } catch (Throwable $t) {
+      $this->exceptionHandler->handleException($t);
+      return $this->getNoCacheRedirect('<front>');
+    }
+  }
+
+  /**
+   * @return RedirectResponse
+   * @throws Throwable
+   * @throws InvalidPluginDefinitionException
+   * @throws PluginNotFoundException
+   * @throws UserDataException
+   */
+  private function tryAuthenticate()
   {
     //already authenticated
     if ($this->accountProxy->isAuthenticated()) {
@@ -208,7 +229,13 @@ class SSOController extends ControllerBase
     //this is stupid I think but according to everyone this is an OK way to
     //prevent redirects from being cached for anonymous users.
     \Drupal::service('page_cache_kill_switch')->trigger();
-    return $this->redirect($url);
+
+    //if its a route
+    if (strpos($url, '<') !== false) {
+      return $this->redirect($url);
+    }
+
+    return new TrustedRedirectResponse($url, 302);
   }
 
   /**
